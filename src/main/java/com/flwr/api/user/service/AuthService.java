@@ -1,5 +1,8 @@
 package com.flwr.api.user.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.flwr.api.user.dto.LoginResponse;
 
 import org.springframework.stereotype.Service;
@@ -64,6 +67,16 @@ public class AuthService {
 
     if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
       throw new IllegalArgumentException("Password not correct");
+    }
+
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
+    String userJson = null;
+    try {
+      userJson = objectMapper.writeValueAsString(user);
+      System.out.println("user: " + userJson);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
     }
 
     String accessToken = jwtProvider.createToken(user.getId().toString());
