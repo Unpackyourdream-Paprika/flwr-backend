@@ -24,6 +24,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtProvider jwtProvider;
+  private final ObjectMapper objectMapper;
 
   public LoginResponse signup(SignupRequest request) {
 
@@ -69,14 +70,11 @@ public class AuthService {
       throw new IllegalArgumentException("Password not correct");
     }
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.registerModule(new JavaTimeModule());
-    String userJson = null;
     try {
-      userJson = objectMapper.writeValueAsString(user);
-      System.out.println("user: " + userJson);
+      String json = objectMapper.writeValueAsString(user);
+      System.out.println(json);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("JSON 직렬화 실패", e);
     }
 
     String accessToken = jwtProvider.createToken(user.getId().toString());
