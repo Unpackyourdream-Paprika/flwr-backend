@@ -23,13 +23,11 @@ public class SignupRequest {
   @NotBlank
   private String firstName;
 
-  @NotBlank
   private String firstNameKana;
 
   @NotBlank
   private String lastName;
 
-  @NotBlank
   private String lastNameKana;
 
   @NotBlank
