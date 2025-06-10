@@ -3,6 +3,7 @@ package com.flwr.api.global.filter;
 import java.io.IOException;
 import java.util.Collections;
 
+import com.flwr.api.user.dto.UserResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,17 +29,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-      @NonNull FilterChain filterChain)
-      throws ServletException, IOException {
+                                  @NonNull FilterChain filterChain)
+          throws ServletException, IOException {
 
     String token = jwtProvider.resolveToken(request);
 
     if (token != null && jwtProvider.validateToken(token)) {
-      String userId = jwtProvider.getUserId(token);
-      var user = userService.getUserInfoById(Long.parseLong(userId));
+      String userIdStr = jwtProvider.getUserId(token);
+
+      long userId = 0;
+      try {
+        userId = Long.parseLong(userIdStr);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(e.getMessage());
+      }
+
+      UserResponse user = userService.getUserInfoById(userId);
 
       UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
-          Collections.emptyList());
+              Collections.emptyList());
 
       authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
       SecurityContextHolder.getContext().setAuthentication(authentication);
