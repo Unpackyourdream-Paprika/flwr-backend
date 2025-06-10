@@ -24,10 +24,6 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-  private String[] allowedEndPoints = {
-      "/auth/**"
-  };
-
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
@@ -36,15 +32,14 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
-        .cors(Customizer.withDefaults())
-        .csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers(allowedEndPoints).permitAll()
-            .anyRequest().authenticated())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        // .httpBasic(Customizer.withDefaults())
-        .httpBasic(httpBasic -> httpBasic.disable())
-        .formLogin(login -> login.disable());
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(Whitelist.PERMIT_ALL).permitAll()
+                    .anyRequest().authenticated())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .formLogin(login -> login.disable());
 
     return http.build();
   }

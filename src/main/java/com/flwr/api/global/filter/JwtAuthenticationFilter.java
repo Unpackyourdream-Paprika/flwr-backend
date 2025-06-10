@@ -1,5 +1,6 @@
 package com.flwr.api.global.filter;
 
+import com.flwr.api.global.config.Whitelist;
 import com.flwr.api.global.jwt.JwtProvider;
 import com.flwr.api.user.domain.User;
 import com.flwr.api.user.service.UserService;
@@ -30,27 +31,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                   @NonNull FilterChain filterChain)
           throws ServletException, IOException {
 
+    String requestURI = request.getRequestURI();
+    for (String endpoint : Whitelist.PERMIT_ALL) {
+
+      String basePath = "/api" + endpoint.substring(0, endpoint.indexOf("*"));
+
+      if (requestURI.startsWith(basePath)) {
+        filterChain.doFilter(request, response);
+        return;
+      }
+    }
+
     String token = jwtProvider.resolveToken(request);
 
-    if (token != null && jwtProvider.validateToken(token)) {
+    if (token == null || !jwtProvider.validateToken(token)) {
+      System.out.println("Invalid Token.");
+      setErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid Token.");
+      return;
+    }
+
+    try {
       String userIdStr = jwtProvider.getUserId(token);
-
-      long userId;
-      try {
-        userId = Long.parseLong(userIdStr);
-      } catch (NumberFormatException e) {
-        throw new IllegalArgumentException(e.getMessage());
-      }
-
+      long userId = Long.parseLong(userIdStr);
       User user = userService.getUserInfoById(userId);
 
-      UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
-              Collections.emptyList());
-
+      UsernamePasswordAuthenticationToken authentication =
+              new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
       authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
       SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    } catch (Exception e) {
+      setErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid token or user not found");
+      return;
     }
 
     filterChain.doFilter(request, response);
+  }
+
+  private void setErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+    response.setStatus(status);
+    response.setContentType("application/json");
+    response.setCharacterEncoding("UTF-8");
+    response.getWriter().write("{\"success\":false,\"message\":\"" + message + "\"}");
   }
 }
